@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="fr">
+	<head>
+		<link href="css/bootstrap.css" rel="stylesheet" />
+		<script type="text/javascript" src="js/jquery-2.0.0.min.js"></script>
+		<script type="text/javascript" src="js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="js/file.js"></script>
+		<script type="text/javascript" src="js/analyzer.js"></script>
+		<script type="text/javascript" src="js/treatments.js"></script>
+		<script type="text/javascript" src="js/canvas.js"></script>
+		<style type="text/css">
+			.modal { width: 1024px; margin-left: -512px; }
+		</style>
+	</head>
+	<body>
+		<div class="navbar">
+			<div class="navbar-inner">
+				<a class="brand" href="#">OpenAMC</a>
+				<ul class="nav">
+					<li class="dropdown">
+						<a href="#" data-toggle="dropdown"><i class="icon-file"></i> Fichier</a>
+						<ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu">
+							<li><a href="#modalLoadModel" data-toggle="modal"><i class="icon-plus-sign"></i> Charger model PowerAMC</a></li>
+							<li class="divider"></li>
+							<li class="disabled"><a href="#" id="download"><i class="icon-download-alt"></i> Télécharger le MCD</a></li>
+						</ul>
+					</li>
+					<li class="dropdown">
+						<a href="#" data-toggle="dropdown"><i class="icon-pencil"></i> Edition</a>
+						<ul class="dropdown-menu">
+							<li><a href="#" onclick="analyzeMCD();"><i class="icon-tasks"></i> Lancer l'analyse</a></li>
+							<li class="divider"></li>
+							<li><a href="#" onclick="changeReferences();"><i class="icon-wrench"></i> Renommer les références</a></li>
+						</ul>
+					</li>
+					<li class="dropdown">
+						<a href="#" data-toggle="dropdown"><i class="icon-list-alt"></i> Affichage</a>
+						<ul class="dropdown-menu" id="domains">
+						</ul>
+					</li>
+					<li class="divider-vertical"></li>
+					<li id="anomalies" class="dropdown hide">
+						<a href="#" data-toggle="dropdown"><i class="icon-bell"></i> Anomalies</a>
+						<ul class="dropdown-menu">
+							<li><a href="#modalUndefind" data-toggle="modal"><i class="icon-question-sign"></i> Types non spécifiés</a></li>
+							<li><a href="#modalBoolNullable" data-toggle="modal"><i class="icon-adjust"></i> Booléens nullables</a></li>
+							<li><a href="#modalIdentity" data-toggle="modal"><i class="icon-star"></i> Id sans IDENTITY</a></li>
+							<li><a href="#modalFKNoIndex" data-toggle="modal"><i class="icon-star-empty"></i> FK sans Index</a></li>
+							<li class="divider"></li>
+							<li><a href="#modalFilters" data-toggle="modal"><i class="icon-filter"></i> Filtres</a></li>
+						</ul>
+					</li>
+				</ul>
+			</div>
+		</div>
+		<!-- LOAD MODEL -->
+		<div id="modalLoadModel" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="modalLoadModelLabel" aria-hidden="true">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+				<h3 id="modalLoadModelLabel">Charger un model</h3>
+			</div>
+			<div class="modal-body">
+				<div class="form-inline">
+					<label for="mcd">MCD :</label>
+					<input type='file' name='mcd' id='mcd'>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button class="btn" data-dismiss="modal" aria-hidden="true">Annuler</button>
+				<button class="btn btn-primary" onclick="treatMCD()">Charger</button>
+			</div>
+		</div>
+		<!-- FILTERS -->
+		<div id="modalFilters" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="modalLoadModelLabel" aria-hidden="true">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+				<h3 id="modalLoadModelLabel">Filtrer les anomalies</h3>
+			</div>
+			<div class="modal-body">
+				<table id="filtersList" class="table table-bordered table-hover table-condensed">
+					<thead>
+						<tr>
+							<th>Domaine</th>
+							<th>
+							<button onclick="checkUncheck(this);" class="btn">Cocher</button>
+							<button onclick="checkUncheck(this);" class="btn btn-inverse">Décocher</button>
+							</th>
+						</tr>
+					</thead>
+					<tbody></tbody>
+				</table>
+			</div>
+			<div class="modal-footer">
+				<button class="btn" data-dismiss="modal" aria-hidden="true">Annuler</button>
+				<button class="btn btn-primary" onclick="filterAnomalies()">Filtrer</button>
+			</div>
+		</div>
+		<div id="modalErrors">
+			<!-- UNDEFINDS -->
+			<div id="modalUndefind" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="modalUndefindLabel" aria-hidden="true">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+					<h3 id="modalUndefindLabel">Types non spécifiés (<span id="totalUndefind">0</span>)</h3>
+				</div>
+				<div class="modal-body">
+					<table id="listUndefined" class="table table-bordered table-hover table-condensed">
+						<thead><tr><th>Domaine</th><th>Table</th><th>Colonne</th><th></th></tr></thead>
+						<tbody></tbody>
+					</table>
+				</div>
+			</div>
+			<!-- BOOLEAN NULLABLE -->
+			<div id="modalBoolNullable" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="modalBoolNullableLabel" aria-hidden="true">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+					<h3 id="modalBoolNullableLabel">Booléens nullables (<span id="totalBoolNullable">0</span>)</h3>
+				</div>
+				<div class="modal-body">
+					<table id="listBoolNullable" class="table table-bordered table-hover table-condensed">
+						<thead><tr><th>Domaine</th><th>Table</th><th>Colonne</th><th></th></tr></thead>
+						<tbody></tbody>
+					</table>
+				</div>
+			</div>
+			<!-- IDENTITY -->
+			<div id="modalIdentity" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="modalIdentityLabel" aria-hidden="true">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+					<h3 id="modalIdentityLabel">Id sans IDENTITY (<span id="totalIdentity">0</span>)</h3>
+				</div>
+				<div class="modal-body">
+					<table id="listIdentity" class="table table-bordered table-hover table-condensed">
+						<thead><tr><th>Domaine</th><th>Table</th><th>Colonne</th><th></th></tr></thead>
+						<tbody></tbody>
+					</table>
+				</div>
+			</div>
+			<!-- FK NO INDEX -->
+			<div id="modalFKNoIndex" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="modalFKNoIndexLabel" aria-hidden="true">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+					<h3 id="modalFKNoIndexLabel">FK sans Index (<span id="totalFKNoIndex">0</span>)</h3>
+				</div>
+				<div class="modal-body">
+					<table id="listFKNoIndex" class="table table-bordered table-hover table-condensed">
+						<thead><tr><th>Domaine</th><th>Table</th><th>Colonne</th><th></th></tr></thead>
+						<tbody></tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div id="modals"></div>
+		<div id="container">
+			
+		</div>
+	</body>
+</html>
